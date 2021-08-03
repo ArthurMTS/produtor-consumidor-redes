@@ -13,6 +13,29 @@ type Data struct {
 	Topic []string
 }
 
+var topicNameList [50]string
+var topicList [50][50]string
+var i = 0
+
+func addTopic(topicName string) {
+	for c := 0; c <= i; c++ {
+		if topicNameList[c] == topicName {
+			return
+		}
+	}
+
+	topicNameList[i] = topicName
+	i++
+}
+
+// func searchTopic(topicName string) int {
+// 	for c := 0; c <= i; c++ {
+// 		if topicNameList[c] == topicName {
+// 			return c
+// 		}
+// 	}
+// }
+
 func checkError(err error){
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Erro: %s\n", err.Error())
@@ -38,7 +61,20 @@ func handleClient(conn net.Conn)  {
 	gobobj.Decode(data)
 
 	fmt.Println("Cliente: ", data.Client)
-	fmt.Println("Tópico: ", data.Topic[0])
+	fmt.Println(len(data.Topic))
+
+	if data.Client == 1 {
+		for c := 0; c < len(data.Topic); c++ {
+			addTopic(data.Topic[c])
+		}
+
+		// receber mensagens do produtor
+
+	} else if data.Client == 2 {
+		// lidar com o consumidor
+	}
+
+	fmt.Println(topicNameList)
 }
 
 func main() {

@@ -36,6 +36,8 @@ func handleConnection(conn *net.TCPConn) {
 	binary.Write(buffer, binary.BigEndian, data)
 
 	conn.Write(buffer.Bytes())
+
+	// receber mensagens do servidor
 }
 
 func main() {

@@ -9,9 +9,6 @@ import (
 	"encoding/binary"
 )
 
-var topicNameList [50]string
-//var topicList [50]
-
 type Data struct {
   Client int
 	Topic []string
@@ -28,7 +25,7 @@ func handleConnection(conn *net.TCPConn) {
 
 	data := Data{
 		Client: 1,
-		Topic: []string{"Tópico A"},
+		Topic: []string{"Tópico B", "Tópico A", "Tópico C"},
 	}
 
 	buffer := new(bytes.Buffer)
@@ -39,6 +36,8 @@ func handleConnection(conn *net.TCPConn) {
 	binary.Write(buffer, binary.BigEndian, data)
 
 	conn.Write(buffer.Bytes())
+
+	// enviar mensagens para o servidor
 }
 
 func main() {
