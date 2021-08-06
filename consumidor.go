@@ -21,6 +21,23 @@ func checkError(err error){
 	}
 }
 
+func reveiveMessage(conn net.Conn) {
+	defer conn.Close()
+
+	buffer := make([]byte, 512)
+
+	for {
+		n, err := conn.Read(buffer[0:])
+		if err != nil {
+			return
+		}
+
+		mensagem := string(buffer[0:n])
+
+		fmt.Println(mensagem)
+	}
+}
+
 func handleConnection(conn *net.TCPConn) {
 
 	data := Data{
@@ -37,7 +54,7 @@ func handleConnection(conn *net.TCPConn) {
 
 	conn.Write(buffer.Bytes())
 
-	// receber mensagens do servidor
+	reveiveMessage(conn)
 }
 
 func main() {

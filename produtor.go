@@ -14,18 +14,41 @@ type Data struct {
 	Topic []string
 }
 
+type Message struct {
+  Topic string
+	Message string
+}
+
 func checkError(err error){
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Erro: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
+ 
+func handleMessages(conn net.Conn) {
+	defer conn.Close()
+
+	buffer := new(bytes.Buffer)
+
+	mensagem := Message{
+		Topic: "Tópico A",
+		Message: "Eu sou o dougras!",
+	}
+
+	gobobj := gob.NewEncoder(buffer)
+	gobobj.Encode(mensagem)
+
+	binary.Write(buffer, binary.BigEndian, mensagem)
+
+	conn.Write(buffer.Bytes())
+}
 
 func handleConnection(conn *net.TCPConn) {
 
 	data := Data{
 		Client: 1,
-		Topic: []string{"Tópico B", "Tópico A", "Tópico C"},
+		Topic: []string{"Tópico A"},
 	}
 
 	buffer := new(bytes.Buffer)
@@ -37,7 +60,7 @@ func handleConnection(conn *net.TCPConn) {
 
 	conn.Write(buffer.Bytes())
 
-	// enviar mensagens para o servidor
+	handleMessages(conn)
 }
 
 func main() {

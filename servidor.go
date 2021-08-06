@@ -13,28 +13,14 @@ type Data struct {
 	Topic []string
 }
 
+type Message struct {
+  Topic string
+	Message string
+}
+
 var topicNameList [50]string
 var topicList [50][50]string
 var i = 0
-
-func addTopic(topicName string) {
-	for c := 0; c <= i; c++ {
-		if topicNameList[c] == topicName {
-			return
-		}
-	}
-
-	topicNameList[i] = topicName
-	i++
-}
-
-// func searchTopic(topicName string) int {
-// 	for c := 0; c <= i; c++ {
-// 		if topicNameList[c] == topicName {
-// 			return c
-// 		}
-// 	}
-// }
 
 func checkError(err error){
 	if err != nil {
@@ -43,9 +29,74 @@ func checkError(err error){
 	}
 }
 
-func handleClient(conn net.Conn)  {
+func addTopic(topicName string) {
+	if searchTopic(topicName) != -1 {
+		return
+	}
+
+	topicNameList[i] = topicName
+	i++
+}
+
+func addMessage(topico string, message string) {
+	index := searchTopic(topico)
+
+	for c := 0; c < 50; c++ {
+		if topicList[index][c] == "" {
+			topicList[index][c] = message
+			break
+		}
+	}
+}
+
+func searchTopic(topicName string) int {
+	for c := 0; c <= i; c++ {
+		if topicNameList[c] == topicName {
+			return c
+		}
+	}
+
+	return -1
+}
+
+func handleProducer(conn net.Conn, data *Data) {
 	defer conn.Close()
 
+	for c := 0; c < len(data.Topic); c++ {
+		addTopic(data.Topic[c])
+	}
+
+	buffer := make([]byte, 512)
+
+	_, err := conn.Read(buffer[0:])
+	if err != nil {
+		return
+	}
+
+	mensagem := new(Message)
+
+	tmpbuff := bytes.NewBuffer(buffer)
+
+	gobobj := gob.NewDecoder(tmpbuff)
+	gobobj.Decode(mensagem)
+
+	addMessage(mensagem.Topic, mensagem.Message)
+}
+
+func handleConsumer(conn net.Conn, data *Data) {
+	defer conn.Close()
+
+	index := searchTopic(data.Topic[0])
+
+	for c := 0; c < 50; c++ {
+		if (topicList[index][c]) != "" {
+			conn.Write([]byte(topicList[index][c]))
+			topicList[index][c] = ""
+		}
+	}
+}
+
+func handleClient(conn net.Conn)  {
 	buffer := make([]byte, 512)
 
 	_, err := conn.Read(buffer[0:])
@@ -60,21 +111,13 @@ func handleClient(conn net.Conn)  {
 	gobobj := gob.NewDecoder(tmpbuff)
 	gobobj.Decode(data)
 
-	fmt.Println("Cliente: ", data.Client)
-	fmt.Println(len(data.Topic))
-
 	if data.Client == 1 {
-		for c := 0; c < len(data.Topic); c++ {
-			addTopic(data.Topic[c])
-		}
-
-		// receber mensagens do produtor
-
+		handleProducer(conn, data)
 	} else if data.Client == 2 {
-		// lidar com o consumidor
+		handleConsumer(conn, data)
+	} else {
+		conn.Close()
 	}
-
-	fmt.Println(topicNameList)
 }
 
 func main() {
