@@ -10,7 +10,7 @@ import (
 
 type Data struct {
   Client int
-	Topic []string
+	Topics []string
 }
 
 type Message struct {
@@ -20,7 +20,6 @@ type Message struct {
 
 var topicNameList [50]string
 var topicList [50][50]string
-var i = 0
 
 func checkError(err error){
 	if err != nil {
@@ -29,29 +28,9 @@ func checkError(err error){
 	}
 }
 
-func addTopic(topicName string) {
-	if searchTopic(topicName) != -1 {
-		return
-	}
-
-	topicNameList[i] = topicName
-	i++
-}
-
-func addMessage(topico string, message string) {
-	index := searchTopic(topico)
-
-	for c := 0; c < 50; c++ {
-		if topicList[index][c] == "" {
-			topicList[index][c] = message
-			break
-		}
-	}
-}
-
-func searchTopic(topicName string) int {
-	for c := 0; c <= i; c++ {
-		if topicNameList[c] == topicName {
+func searchTopic(topic string) int {
+	for c := 0; c < len(topicNameList); c++ {
+		if topic == topicNameList[c] {
 			return c
 		}
 	}
@@ -59,34 +38,64 @@ func searchTopic(topicName string) int {
 	return -1
 }
 
-func handleProducer(conn net.Conn, data *Data) {
-	defer conn.Close()
-
-	for c := 0; c < len(data.Topic); c++ {
-		addTopic(data.Topic[c])
-	}
-
-	buffer := make([]byte, 512)
-
-	_, err := conn.Read(buffer[0:])
-	if err != nil {
+func addTopic(topic string) {
+	if searchTopic(topic) != -1 {
 		return
 	}
 
-	mensagem := new(Message)
+	for c := 0; c < len(topicNameList); c++ {
+		if topicNameList[c] == "" {
+			topicNameList[c] = topic
+			break
+		}
+	}
+}
 
-	tmpbuff := bytes.NewBuffer(buffer)
+func addMessage(topic string, message string) {
+	index := searchTopic(topic)
 
-	gobobj := gob.NewDecoder(tmpbuff)
-	gobobj.Decode(mensagem)
+	for c := 0; c < len(topicList[index]); c++ {
+		if topicList[index][c] == "" {
+			topicList[index][c] = message
+			break
+		}
+	}
+}
 
-	addMessage(mensagem.Topic, mensagem.Message)
+func handleProducer(conn net.Conn, data *Data) {
+	defer conn.Close()
+
+	for c := 0; c < len(data.Topics); c++ {
+		addTopic(data.Topics[c])
+	}
+
+	fmt.Println(topicNameList)
+
+	buffer := make([]byte, 512)
+
+	for {
+		_, err := conn.Read(buffer[0:])
+		if err != nil {
+			return
+		}
+
+		mensagem := new(Message)
+
+		tmpbuff := bytes.NewBuffer(buffer)
+
+		gobobj := gob.NewDecoder(tmpbuff)
+		gobobj.Decode(mensagem)
+
+		addMessage(mensagem.Topic, mensagem.Message)
+
+		fmt.Println(topicList[0])
+	}
 }
 
 func handleConsumer(conn net.Conn, data *Data) {
 	defer conn.Close()
 
-	index := searchTopic(data.Topic[0])
+	index := searchTopic(data.Topics[0])
 
 	for c := 0; c < 50; c++ {
 		if (topicList[index][c]) != "" {

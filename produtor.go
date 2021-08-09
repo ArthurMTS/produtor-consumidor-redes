@@ -7,11 +7,13 @@ import (
 	"os"
 	"encoding/gob"
 	"encoding/binary"
+	"strings"
+	"time"
 )
 
 type Data struct {
   Client int
-	Topic []string
+	Topics []string
 }
 
 type Message struct {
@@ -25,15 +27,13 @@ func checkError(err error){
 		os.Exit(1)
 	}
 }
- 
-func handleMessages(conn net.Conn) {
-	defer conn.Close()
 
+func sendMessage(conn net.Conn, topic string, message string) {
 	buffer := new(bytes.Buffer)
 
 	mensagem := Message{
-		Topic: "Tópico A",
-		Message: "Eu sou o dougras!",
+		Topic: topic,
+		Message: message,
 	}
 
 	gobobj := gob.NewEncoder(buffer)
@@ -43,12 +43,30 @@ func handleMessages(conn net.Conn) {
 
 	conn.Write(buffer.Bytes())
 }
+ 
+func handleMessages(conn net.Conn, topics []string) {
+	defer conn.Close()
+	var i = 0
+	var mensagem = ""
 
-func handleConnection(conn *net.TCPConn) {
+	for {
+		mensagem = "Mensagem " + topics[i]
+
+		fmt.Println("Sending message " + mensagem)
+
+		sendMessage(conn, topics[i], mensagem)
+
+		i = (i + 1) % len(topics)
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func handleConnection(conn *net.TCPConn, topics []string) {
 
 	data := Data{
 		Client: 1,
-		Topic: []string{"Tópico A"},
+		Topics: topics,
 	}
 
 	buffer := new(bytes.Buffer)
@@ -60,10 +78,17 @@ func handleConnection(conn *net.TCPConn) {
 
 	conn.Write(buffer.Bytes())
 
-	handleMessages(conn)
+	handleMessages(conn, topics)
 }
 
 func main() {
+
+	if len(os.Args) != 2 {
+		fmt.Printf("Erro! too few arguments. You should try: %s \"topic A, topic B\" \n", os.Args[0])
+		os.Exit(1)
+	}
+
+	topics := strings.Split(os.Args[1], ",")
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":1234")
 	checkError(err)
@@ -71,7 +96,7 @@ func main() {
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err)
 
-	handleConnection(conn)
+	handleConnection(conn, topics)
 
 	conn.Close()
 
