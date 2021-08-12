@@ -47,16 +47,18 @@ func sendMessage(conn net.Conn, topic string, message string) {
 func handleMessages(conn net.Conn, topics []string) {
 	defer conn.Close()
 	var i = 0
+	var cod = 0
 	var mensagem = ""
 
 	for {
-		mensagem = "Mensagem " + topics[i]
+		mensagem = fmt.Sprintf("Mensagem %d", cod)
 
-		fmt.Println("Sending message " + mensagem)
+		fmt.Printf("Sending: %s [%s]\n", mensagem, topics[i])
 
 		sendMessage(conn, topics[i], mensagem)
 
 		i = (i + 1) % len(topics)
+		cod = cod + 1
 
 		time.Sleep(2 * time.Second)
 	}

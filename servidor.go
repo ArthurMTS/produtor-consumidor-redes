@@ -6,6 +6,8 @@ import (
 	"os"
 	"bytes"
 	"encoding/gob"
+	"encoding/binary"
+	"time"
 )
 
 type Data struct {
@@ -69,17 +71,18 @@ func handleProducer(conn net.Conn, data *Data) {
 		addTopic(data.Topics[c])
 	}
 
-	fmt.Println(topicNameList)
+	//fmt.Println(topicNameList)
 
 	buffer := make([]byte, 512)
+	mensagem := new(Message)
+
+	var i = 0
 
 	for {
 		_, err := conn.Read(buffer[0:])
 		if err != nil {
-			return
+			continue
 		}
-
-		mensagem := new(Message)
 
 		tmpbuff := bytes.NewBuffer(buffer)
 
@@ -88,20 +91,44 @@ func handleProducer(conn net.Conn, data *Data) {
 
 		addMessage(mensagem.Topic, mensagem.Message)
 
-		fmt.Println(topicList[0])
+		//fmt.Println(topicList[i])
+		i = (i + 1) % len(data.Topics)
 	}
 }
 
 func handleConsumer(conn net.Conn, data *Data) {
 	defer conn.Close()
 
-	index := searchTopic(data.Topics[0])
+	var i = 0
+	buffer := new(bytes.Buffer)
 
-	for c := 0; c < 50; c++ {
-		if (topicList[index][c]) != "" {
-			conn.Write([]byte(topicList[index][c]))
-			topicList[index][c] = ""
+	for {
+		index := searchTopic(data.Topics[i])
+		if index == -1 {
+			continue
 		}
+
+		for c := 0; c < 50; c++ {
+			if topicList[index][c] != "" {
+				mensagem := Message{
+					Topic: data.Topics[i],
+					Message: topicList[index][c],
+				}
+
+				topicList[index][c] = ""
+			
+				gobobj := gob.NewEncoder(buffer)
+				gobobj.Encode(mensagem)
+			
+				fmt.Println(mensagem.Message, mensagem.Topic)
+
+				binary.Write(buffer, binary.BigEndian, mensagem)
+
+				conn.Write(buffer.Bytes())
+				time.Sleep(2 * time.Second)
+			}
+		}
+		i = (i + 1) % len(data.Topics)
 	}
 }
 

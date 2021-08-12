@@ -7,11 +7,17 @@ import (
 	"os"
 	"encoding/gob"
 	"encoding/binary"
+	"strings"
 )
 
 type Data struct {
   Client int
-	Topic []string
+	Topics []string
+}
+
+type Message struct {
+  Topic string
+	Message string
 }
 
 func checkError(err error){
@@ -25,24 +31,28 @@ func reveiveMessage(conn net.Conn) {
 	defer conn.Close()
 
 	buffer := make([]byte, 512)
+	mensagem := new(Message)
 
 	for {
-		n, err := conn.Read(buffer[0:])
+		_, err := conn.Read(buffer[0:])
 		if err != nil {
-			return
+			continue
 		}
 
-		mensagem := string(buffer[0:n])
+		tmpbuff := bytes.NewBuffer(buffer)
 
-		fmt.Println(mensagem)
+		gobobj := gob.NewDecoder(tmpbuff)
+		gobobj.Decode(mensagem)
+
+		fmt.Println(mensagem.Message, mensagem.Topic)
 	}
 }
 
-func handleConnection(conn *net.TCPConn) {
+func handleConnection(conn *net.TCPConn, topics []string) {
 
 	data := Data{
 		Client: 2,
-		Topic: []string{"Tópico A"},
+		Topics: topics,
 	}
 
 	buffer := new(bytes.Buffer)
@@ -59,13 +69,20 @@ func handleConnection(conn *net.TCPConn) {
 
 func main() {
 
+	if len(os.Args) != 2 {
+		fmt.Printf("Erro! too few arguments. You should try: %s \"topic A, topic B\" \n", os.Args[0])
+		os.Exit(1)
+	}
+
+	topics := strings.Split(os.Args[1], ",")
+
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":1234")
 	checkError(err)
 	
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	checkError(err)
 
-	handleConnection(conn)
+	handleConnection(conn, topics)
 
 	conn.Close()
 
