@@ -64,14 +64,14 @@ func addMessage(topic string, message string) {
 	}
 }
 
-func handleProducer(conn net.Conn, data *Data) {
+func handleProducer(conn net.Conn, topics []string) {
 	defer conn.Close()
 
-	for c := 0; c < len(data.Topics); c++ {
-		addTopic(data.Topics[c])
+	for c := 0; c < len(topics); c++ {
+		addTopic(topics[c])
 	}
 
-	//fmt.Println(topicNameList)
+	fmt.Println(topicNameList)
 
 	buffer := make([]byte, 512)
 	mensagem := new(Message)
@@ -91,44 +91,46 @@ func handleProducer(conn net.Conn, data *Data) {
 
 		addMessage(mensagem.Topic, mensagem.Message)
 
-		//fmt.Println(topicList[i])
-		i = (i + 1) % len(data.Topics)
+		fmt.Println(topicList[i])
+		i = (i + 1) % len(topics)
 	}
 }
 
-func handleConsumer(conn net.Conn, data *Data) {
+func handleConsumer(conn net.Conn, topics []string) {
 	defer conn.Close()
 
 	var i = 0
-	buffer := new(bytes.Buffer)
 
 	for {
-		index := searchTopic(data.Topics[i])
+		index := searchTopic(topics[0])
 		if index == -1 {
 			continue
 		}
 
 		for c := 0; c < 50; c++ {
 			if topicList[index][c] != "" {
+				time.Sleep(2 * time.Second)
+
+				buffer := new(bytes.Buffer)
+
 				mensagem := Message{
-					Topic: data.Topics[i],
+					Topic: topics[0],
 					Message: topicList[index][c],
 				}
 
-				topicList[index][c] = ""
-			
 				gobobj := gob.NewEncoder(buffer)
 				gobobj.Encode(mensagem)
-			
-				fmt.Println(mensagem.Message, mensagem.Topic)
 
 				binary.Write(buffer, binary.BigEndian, mensagem)
 
+				fmt.Println(mensagem.Message, mensagem.Topic)
+
 				conn.Write(buffer.Bytes())
-				time.Sleep(2 * time.Second)
+
+				topicList[index][c] = ""
 			}
 		}
-		i = (i + 1) % len(data.Topics)
+		i = (i + 1) % len(topics)
 	}
 }
 
@@ -148,9 +150,9 @@ func handleClient(conn net.Conn)  {
 	gobobj.Decode(data)
 
 	if data.Client == 1 {
-		handleProducer(conn, data)
+		handleProducer(conn, data.Topics)
 	} else if data.Client == 2 {
-		handleConsumer(conn, data)
+		handleConsumer(conn, data.Topics)
 	} else {
 		conn.Close()
 	}

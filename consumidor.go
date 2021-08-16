@@ -27,7 +27,7 @@ func checkError(err error){
 	}
 }
 
-func reveiveMessage(conn net.Conn) {
+func receiveMessages(conn net.Conn, topics []string) {
 	defer conn.Close()
 
 	buffer := make([]byte, 512)
@@ -44,11 +44,11 @@ func reveiveMessage(conn net.Conn) {
 		gobobj := gob.NewDecoder(tmpbuff)
 		gobobj.Decode(mensagem)
 
-		fmt.Println(mensagem.Message, mensagem.Topic)
+		fmt.Println(mensagem.Topic, mensagem.Message)
 	}
 }
 
-func handleConnection(conn *net.TCPConn, topics []string) {
+func handleConnection(conn net.Conn, topics []string) {
 
 	data := Data{
 		Client: 2,
@@ -64,7 +64,7 @@ func handleConnection(conn *net.TCPConn, topics []string) {
 
 	conn.Write(buffer.Bytes())
 
-	reveiveMessage(conn)
+	receiveMessages(conn, topics)
 }
 
 func main() {

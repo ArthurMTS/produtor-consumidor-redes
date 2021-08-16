@@ -51,6 +51,8 @@ func handleMessages(conn net.Conn, topics []string) {
 	var mensagem = ""
 
 	for {
+		time.Sleep(2 * time.Second)
+		
 		mensagem = fmt.Sprintf("Mensagem %d", cod)
 
 		fmt.Printf("Sending: %s [%s]\n", mensagem, topics[i])
@@ -59,8 +61,6 @@ func handleMessages(conn net.Conn, topics []string) {
 
 		i = (i + 1) % len(topics)
 		cod = cod + 1
-
-		time.Sleep(2 * time.Second)
 	}
 }
 
